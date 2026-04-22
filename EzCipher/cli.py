@@ -12,12 +12,20 @@ def main():
     # Encrypt command
     enc_parser = subparsers.add_parser("encrypt", help="Encrypt a string")
     enc_parser.add_argument("text", help="Text to encrypt")
-    enc_parser.add_argument("-p", "--password", required=True, help="Password for encryption")
+    group = enc_parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("-p", "--password", help="Password for encryption")
+    group.add_argument("-w", "--words", help="12-word recovery phrase for encryption")
 
     # Decrypt command
     dec_parser = subparsers.add_parser("decrypt", help="Decrypt a string")
     dec_parser.add_argument("data", help="Base64 encoded ciphertext")
-    dec_parser.add_argument("-p", "--password", required=True, help="Password for decryption")
+    group_dec = dec_parser.add_mutually_exclusive_group(required=True)
+    group_dec.add_argument("-p", "--password", help="Password for decryption")
+    group_dec.add_argument("-w", "--words", help="12-word recovery phrase for decryption")
+
+    # Recovery command
+    rec_parser = subparsers.add_parser("recovery", help="Manage recovery phrases")
+    rec_parser.add_argument("--generate", action="store_true", help="Generate a new 12-word recovery phrase")
 
     # Config command
     conf_parser = subparsers.add_parser("config", help="Manage encrypted configuration")
@@ -31,12 +39,23 @@ def main():
 
     try:
         if args.command == "encrypt":
-            cipher = EzCipher.from_password(args.password)
+            if args.password:
+                cipher = EzCipher.from_password(args.password)
+            else:
+                cipher = EzCipher.from_mnemonic(args.words)
             print(cipher.encrypt(args.text))
 
         elif args.command == "decrypt":
-            cipher = EzCipher.from_password(args.password)
+            if args.password:
+                cipher = EzCipher.from_password(args.password)
+            else:
+                cipher = EzCipher.from_mnemonic(args.words)
             print(cipher.decrypt(args.data))
+
+        elif args.command == "recovery":
+            if args.generate:
+                print("[*] Generated Recovery Phrase (KEEP IT SAFE!):")
+                print(f"\n    {EzCipher.generate_mnemonic()}\n")
 
         elif args.command == "config":
             conf = SecureConfig(args.file, args.password)

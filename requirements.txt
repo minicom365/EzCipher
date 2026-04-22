@@ -1,2 +1,3 @@
 pycryptodome
+mnemonic
 wheel

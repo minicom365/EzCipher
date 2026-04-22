@@ -3,6 +3,8 @@
 import base64
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
+from mnemonic import Mnemonic
+import hashlib
 from .secret_key import generate_secret_key
 
 # [Architecture 2.0] AES-GCM을 사용한 인증 암호화 구현. 
@@ -26,6 +28,23 @@ class EzCipher(object):
         """
         self.key = key
         self.password = password
+
+    @staticmethod
+    def generate_mnemonic(language="english"):
+        """12개의 단어로 구성된 복구 문구(Mnemonic)를 생성합니다."""
+        mnemo = Mnemonic(language)
+        return mnemo.generate(strength=128)
+
+    @classmethod
+    def from_mnemonic(cls, words, language="english"):
+        """12개의 복구 단어로부터 EzCipher 인스턴스를 초기화합니다."""
+        mnemo = Mnemonic(language)
+        if not mnemo.check(words):
+            raise ValueError("Invalid mnemonic recovery phrase")
+        seed = mnemo.to_seed(words, passphrase="")
+        # 64바이트 시드를 SHA-256으로 해싱하여 32바이트 키 생성
+        key = hashlib.sha256(seed).digest()
+        return cls(key=key)
 
     @classmethod
     def from_password(cls, password):
