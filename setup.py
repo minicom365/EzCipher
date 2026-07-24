@@ -35,6 +35,7 @@ setup(
     ],
     install_requires=[
         "pycryptodome>=3.10.1",
+        "mnemonic>=0.20",
     ],
     entry_points={
         'console_scripts': [
