@@ -21,13 +21,24 @@ class EzCipher(object):
     NONCE_SIZE = 12
     TAG_SIZE = 16
 
-    def __init__(self, key=None, password=None):
+    def __init__(self, key=None, password=None, iterations=100000):
         """
         key: bytes 형태의 AES 키 (16, 24, 32 bytes)
         password: 키 유도를 위한 패스워드 문자열
+        iterations: PBKDF2 반복 횟수
         """
         self.key = key
         self.password = password
+        self.iterations = iterations
+        
+        # KDF 최적화를 위한 내부 캐시
+        self._cached_salt = None
+        self._cached_key = None
+        
+        if self.password:
+            self._cached_key, self._cached_salt = generate_secret_key(
+                self.password, iterations=self.iterations
+            )
 
     @staticmethod
     def generate_mnemonic(language="english"):
@@ -47,12 +58,12 @@ class EzCipher(object):
         return cls(key=key)
 
     @classmethod
-    def from_password(cls, password):
+    def from_password(cls, password, iterations=100000):
         """
         패스워드로부터 초기화된 SimpleAES 인스턴스를 반환합니다.
-        암호화 시에는 새로운 Salt가 생성되어 결과물에 포함됩니다.
+        암호화 시에는 캐싱된 Salt와 Key가 재사용됩니다.
         """
-        return cls(password=password)
+        return cls(password=password, iterations=iterations)
 
     def encrypt(self, data):
         """
@@ -65,8 +76,9 @@ class EzCipher(object):
         salt = b'\x00' * self.SALT_SIZE
         
         if self.password:
-            # 암호화 시마다 새로운 salt를 생성하여 보안성 강화
-            current_key, salt = generate_secret_key(self.password)
+            # 캐싱된 salt와 key를 재사용하여 수백 ms 병목을 제거
+            current_key = self._cached_key
+            salt = self._cached_salt
         
         if not current_key:
             raise ValueError("Key or Password must be provided")
@@ -99,8 +111,14 @@ class EzCipher(object):
             
             current_key = self.key
             if self.password:
-                # 암호문에 포함된 salt를 사용하여 동일한 키를 유도
-                current_key, _ = generate_secret_key(self.password, salt=salt)
+                # 암호문에 포함된 salt가 캐시와 일치하면 즉시 캐시된 키 재사용
+                if salt == self._cached_salt:
+                    current_key = self._cached_key
+                else:
+                    # 새로운 salt일 경우에만 KDF 수행 후 캐시 갱신
+                    current_key, _ = generate_secret_key(self.password, salt=salt, iterations=self.iterations)
+                    self._cached_salt = salt
+                    self._cached_key = current_key
                 
             if not current_key:
                 raise ValueError("Key or Password must be provided")

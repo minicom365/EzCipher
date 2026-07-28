@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "EzCipher"
+version = "1.1.0"
+description = "A modern, zero-boilerplate AES-GCM encryption library and CLI tool."
+readme = "README.md"
+requires-python = ">=3.7"
+license = "MIT"
+authors = [
+    {name = "minicom365", email = "3387910@naver.com"}
+]
+keywords = ["AES", "GCM", "Encryption", "CLI", "SecureConfig", "EzCipher"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Security :: Cryptography",
+]
+dependencies = [
+    "pycryptodome>=3.10.1",
+    "mnemonic>=0.20",
+]
+
+[project.urls]
+Homepage = "https://github.com/minicom365/EzCipher"
+
+[project.scripts]
+ezcipher = "EzCipher.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["EzCipher*"]
